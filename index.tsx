@@ -5,27 +5,55 @@
  */
 
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
-import { BaseText } from "@components/BaseText";
 import { Button } from "@components/Button";
+import { Heading } from "@components/Heading";
 import { Devs } from "@utils/constants";
-import { ModalContent, ModalFooter, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
+import { insertTextIntoChatInputBox } from "@utils/discord";
+import { closeModal, ModalContent, ModalHeader, ModalProps, ModalRoot, openModal } from "@utils/modal";
 import definePlugin from "@utils/types";
 
-const Modal = (props: ModalProps) => {
+const KaomojiPickerContent = ({ close }: { close: () => void; }) => {
+    const kaomojis = [
+        "( •̀ ‿‿ •́)",
+        "/ᐠ - ˕ -マ",
+        "( ͡° ͜ʖ ͡°)",
+        "(╯°□°）╯︵ ┻━┻",
+        "(ಠ_ಠ)",
+        "(づ｡◕‿‿◕｡)づ",
+    ];
+
     return (
-        <ModalRoot {...props}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px" }}>
+            {kaomojis.map(kaomoji => (
+                <Button
+                    key={kaomoji}
+                    size="small"
+                    style={{
+                        padding: "8px",
+                        fontSize: "20px",
+                        minHeight: "40px",
+                    }}
+                    onClick={() => {
+                        insertTextIntoChatInputBox(kaomoji);
+                        close(); // properly closes now
+                    }}
+                >
+                    {kaomoji}
+                </Button>
+            ))}
+        </div>
+    );
+};
+
+const KaomojiModal = ({ rootProps, close }: { rootProps: ModalProps; close: () => void; }) => {
+    return (
+        <ModalRoot {...rootProps}>
             <ModalHeader>
+                <Heading>Kaomoji Picker</Heading>
             </ModalHeader>
             <ModalContent>
-                <BaseText>
-                    {"hiyaaa heyy hello"}
-                </BaseText>
+                <KaomojiPickerContent close={close} />
             </ModalContent>
-            <ModalFooter>
-                <Button onClick={props.onClose}>
-                    Close
-                </Button>
-            </ModalFooter>
         </ModalRoot>
     );
 };
@@ -38,7 +66,10 @@ const KaomojiButton: ChatBarButtonFactory = ({ isMainChat }) => {
             tooltip="Open Kaomoji Picker"
             onClick={() => {
                 openModal(modalProps => (
-                    <Modal {...modalProps} />
+                    <KaomojiModal
+                        rootProps={modalProps}
+                        close={() => closeModal(modalProps.modalKey)}
+                    />
                 ));
             }}
             buttonProps={{
@@ -51,9 +82,8 @@ const KaomojiButton: ChatBarButtonFactory = ({ isMainChat }) => {
 };
 
 export default definePlugin({
-    name: "Kaomoji Picker",
-    description: "Adds a Kaomoji picker to the chat box.",
+    name: "KaomojiPicker",
+    description: "Adds a Kaomoji picker to the chat bar.",
     authors: [Devs.Ven],
-
     renderChatBarButton: KaomojiButton,
 });
