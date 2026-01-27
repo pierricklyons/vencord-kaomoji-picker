@@ -6,19 +6,9 @@
 
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { Button } from "@components/Button";
-import { Divider } from "@components/Divider";
-import { Heading } from "@components/Heading";
 import { insertTextIntoChatInputBox } from "@utils/discord";
-import {
-    closeModal,
-    ModalCloseButton,
-    ModalContent,
-    ModalHeader,
-    ModalProps,
-    ModalRoot,
-    openModal
-} from "@utils/modal";
 import definePlugin from "@utils/types";
+import { Popout, useRef, useState } from "@webpack/common";
 
 const KAOMOJIS = [
     "( •̀ ‿‿ •́)",
@@ -29,60 +19,15 @@ const KAOMOJIS = [
     "(づ｡◕‿‿◕｡)づ"
 ];
 
-const KaomojiButton: ChatBarButtonFactory = ({ isMainChat }) => {
-    if (!isMainChat) return null;
-
-    return (
-        <ChatBarButton
-            tooltip="Open Kaomoji Picker"
-            onClick={() => {
-                const modalKey = openModal(modalProps => (
-                    <KaomojiModal
-                        rootProps={modalProps}
-                        modalKey={modalKey}
-                    />
-                ));
-            }}
-            buttonProps={{
-                "aria-haspopup": "dialog"
-            }}
-        >
-            {"Kao"}
-        </ChatBarButton>
-    );
-};
-
-
-const KaomojiModal = ({
-    rootProps,
-    modalKey
-}: {
-    rootProps: ModalProps;
-    modalKey: string;
-}) => {
-    return (
-        <ModalRoot {...rootProps}>
-            <ModalHeader>
-                <Heading style={{ flexGrow: 1 }}>
-                    Kaomoji Picker
-                </Heading>
-                <ModalCloseButton onClick={() => closeModal(modalKey)} />
-            </ModalHeader>
-            <Divider />
-            <ModalContent>
-                <KaomojiPickerContent modalKey={modalKey} />
-            </ModalContent>
-        </ModalRoot>
-    );
-};
-
-const KaomojiPickerContent = ({ modalKey }: { modalKey: string; }) => {
+const KaomojiPickerContent = ({ onPick }: { onPick: () => void; }) => {
     return (
         <div
             style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "8px"
+                gap: "8px",
+                padding: "8px",
+                minWidth: "200px"
             }}
         >
             {KAOMOJIS.map(kaomoji => (
@@ -91,14 +36,51 @@ const KaomojiPickerContent = ({ modalKey }: { modalKey: string; }) => {
                     variant="primary"
                     size="medium"
                     onClick={() => {
-                        insertTextIntoChatInputBox(kaomoji);
-                        closeModal(modalKey);
+                        onPick();
+                        queueMicrotask(() => {
+                            insertTextIntoChatInputBox(kaomoji);
+                        });
                     }}
                 >
                     {kaomoji}
                 </Button>
             ))}
         </div>
+    );
+};
+
+const KaomojiButton: ChatBarButtonFactory = ({ isMainChat }) => {
+    if (!isMainChat) return null;
+
+    const buttonRef = useRef<HTMLSpanElement>(null);
+    const [show, setShow] = useState(false);
+
+    return (
+        <Popout
+            position="top"
+            align="center"
+            animation={Popout.Animation.NONE}
+            shouldShow={show}
+            onRequestClose={() => setShow(false)}
+            targetElementRef={buttonRef}
+            renderPopout={() => (
+                <KaomojiPickerContent onPick={() => setShow(false)} />
+            )}
+        >
+            {() => (
+                <span ref={buttonRef}>
+                    <ChatBarButton
+                        tooltip="Open Kaomoji Picker"
+                        onClick={() => setShow(v => !v)}
+                        buttonProps={{
+                            "aria-haspopup": "dialog"
+                        }}
+                    >
+                        {"Kao"}
+                    </ChatBarButton>
+                </span>
+            )}
+        </Popout>
     );
 };
 
