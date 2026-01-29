@@ -6,6 +6,10 @@
 
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import { Button } from "@components/Button";
+import { Card } from "@components/Card";
+import { Divider } from "@components/Divider";
+import { Grid } from "@components/Grid";
+import { Heading } from "@components/Heading";
 import { insertTextIntoChatInputBox } from "@utils/discord";
 import definePlugin from "@utils/types";
 import { Popout, useRef, useState } from "@webpack/common";
@@ -21,31 +25,27 @@ const KAOMOJIS = [
 
 const KaomojiPickerContent = ({ onPick }: { onPick: () => void; }) => {
     return (
-        <div
-            style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "8px",
-                padding: "8px",
-                minWidth: "200px"
-            }}
-        >
-            {KAOMOJIS.map(kaomoji => (
-                <Button
-                    key={kaomoji}
-                    variant="primary"
-                    size="medium"
-                    onClick={() => {
-                        onPick();
-                        queueMicrotask(() => {
-                            insertTextIntoChatInputBox(kaomoji);
-                        });
-                    }}
-                >
-                    {kaomoji}
-                </Button>
-            ))}
-        </div>
+        <>
+            <Heading>Kaomoji Picker!</Heading>
+            <Divider />
+            <Grid columns={2} gap="8px">{
+                KAOMOJIS.map(kaomoji => (
+                    <Button
+                        key={kaomoji}
+                        variant="primary"
+                        size="medium"
+                        onClick={() => {
+                            onPick();
+                            queueMicrotask(() => {
+                                insertTextIntoChatInputBox(kaomoji);
+                            });
+                        }}
+                    >
+                        {kaomoji}
+                    </Button>
+                ))
+            }</Grid>
+        </>
     );
 };
 
@@ -64,7 +64,8 @@ const KaomojiButton: ChatBarButtonFactory = ({ isMainChat }) => {
             onRequestClose={() => setShow(false)}
             targetElementRef={buttonRef}
             renderPopout={() => (
-                <KaomojiPickerContent onPick={() => setShow(false)} />
+                <Card><KaomojiPickerContent onPick={() => setShow(false)} /></Card>
+
             )}
         >
             {() => (
