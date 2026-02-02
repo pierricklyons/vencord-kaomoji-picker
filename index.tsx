@@ -25,27 +25,28 @@ const KAOMOJIS = [
 
 const KaomojiPickerContent = ({ onPick }: { onPick: () => void; }) => {
     return (
-        <>
+        <Card style={{ marginBottom: "12px" }} autoFocus={true}>
             <Heading>Kaomoji Picker!</Heading>
             <Divider />
-            <Grid columns={2} gap="8px">{
-                KAOMOJIS.map(kaomoji => (
-                    <Button
-                        key={kaomoji}
-                        variant="primary"
-                        size="medium"
-                        onClick={() => {
-                            onPick();
-                            queueMicrotask(() => {
+            <div style={{ backgroundColor: "var(--background-secondary)" }}>
+                <Grid columns={2} gap="8px">{
+                    KAOMOJIS.map(kaomoji => (
+                        <Button
+                            key={kaomoji}
+                            variant="primary"
+                            size="medium"
+                            onClick={() => {
+                                onPick();
                                 insertTextIntoChatInputBox(kaomoji);
-                            });
-                        }}
-                    >
-                        {kaomoji}
-                    </Button>
-                ))
-            }</Grid>
-        </>
+                            }}
+                        >
+                            {kaomoji}
+                        </Button>
+                    ))
+                }</Grid>
+            </div>
+
+        </Card >
     );
 };
 
@@ -61,10 +62,11 @@ const KaomojiButton: ChatBarButtonFactory = ({ isMainChat }) => {
             align="center"
             animation={Popout.Animation.NONE}
             shouldShow={show}
+            spacing={8}
             onRequestClose={() => setShow(false)}
             targetElementRef={buttonRef}
             renderPopout={() => (
-                <Card><KaomojiPickerContent onPick={() => setShow(false)} /></Card>
+                <KaomojiPickerContent onPick={() => setShow(false)} />
 
             )}
         >
