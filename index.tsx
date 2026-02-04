@@ -5,48 +5,93 @@
  */
 
 import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
+import { BaseText } from "@components/BaseText";
 import { Button } from "@components/Button";
 import { Card } from "@components/Card";
 import { Divider } from "@components/Divider";
 import { Grid } from "@components/Grid";
-import { Heading } from "@components/Heading";
 import { insertTextIntoChatInputBox } from "@utils/discord";
 import definePlugin from "@utils/types";
-import { Popout, useRef, useState } from "@webpack/common";
+import { Popout, TextInput, useRef, useState } from "@webpack/common";
 
-const KAOMOJIS = [
-    "( •̀ ‿‿ •́)",
-    "/ᐠ - ˕ -マ",
-    "( ͡° ͜ʖ ͡°)",
-    "(╯°□°）╯︵ ┻━┻",
-    "(ಠ_ಠ)",
-    "(づ｡◕‿‿◕｡)づ"
-];
+import kaomojiByCategory from "./kaomoji.json";
 
-const KaomojiPickerContent = ({ onPick }: { onPick: () => void; }) => {
+type KaomojiEntry = {
+    text: string;
+    subCategory: string;
+};
+
+const KAOMOJIS: KaomojiEntry[] = [];
+
+for (const value of Object.values(kaomojiByCategory as Record<string, Record<string, string[]>>)) {
+    for (const [subCategory, list] of Object.entries(value)) {
+        for (const text of list) {
+            KAOMOJIS.push({ text, subCategory });
+        }
+    }
+}
+
+const KaomojiPickerContent = ({ maxResults = 250, onPick }: { maxResults?: number, onPick: () => void; }) => {
+    const [query, setQuery] = useState("");
+
+    const q = query.trim().toLowerCase();
+
+    const results = q === ""
+        ? []
+        : KAOMOJIS.filter(
+            ({ text, subCategory }) =>
+                text.includes(query) || subCategory.toLowerCase().includes(q)
+        ).slice(0, maxResults);
+
     return (
-        <Card style={{ marginBottom: "12px" }} autoFocus={true}>
-            <Heading>Kaomoji Picker!</Heading>
-            <Divider />
-            <div style={{ backgroundColor: "var(--background-secondary)" }}>
-                <Grid columns={2} gap="8px">{
-                    KAOMOJIS.map(kaomoji => (
-                        <Button
-                            key={kaomoji}
-                            variant="primary"
-                            size="medium"
-                            onClick={() => {
-                                onPick();
-                                insertTextIntoChatInputBox(kaomoji);
-                            }}
-                        >
-                            {kaomoji}
-                        </Button>
-                    ))
-                }</Grid>
-            </div>
+        <Card
+            style={{
+                width: 300,
+                height: 419, // emoji picker height lmao
+                marginBottom: "12px",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden"
+            }}
+            autoFocus
+        >
+            <TextInput
+                value={query}
+                placeholder="Search kaomoji..."
+                onChange={setQuery}
+                autoFocus
+            />
 
-        </Card >
+            <Divider style={{ marginTop: "16px", marginBottom: "16px" }} />
+
+            <div
+                style={{
+                    flex: 1,
+                    overflowY: "auto",
+                }}
+            >
+                {results.length > 0 && (
+                    <Grid columns={2} gap="8px">
+                        {results.map(({ text }) => (
+                            <Button
+                                key={text}
+                                size="medium"
+                                onClick={() => {
+                                    onPick();
+                                    insertTextIntoChatInputBox(text);
+                                }}
+                            >
+                                {text}
+                            </Button>
+                        ))}
+                    </Grid>
+                )}
+
+                {q.length > 0 && results.length === 0 && (
+                    <BaseText style={{ textAlign: "center", opacity: 0.5 }}>No results</BaseText>
+                )}
+            </div>
+        </Card>
     );
 };
 
@@ -67,7 +112,6 @@ const KaomojiButton: ChatBarButtonFactory = ({ isMainChat }) => {
             targetElementRef={buttonRef}
             renderPopout={() => (
                 <KaomojiPickerContent onPick={() => setShow(false)} />
-
             )}
         >
             {() => (
