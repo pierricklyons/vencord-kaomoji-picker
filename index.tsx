@@ -14,42 +14,42 @@ import { insertTextIntoChatInputBox } from "@utils/discord";
 import definePlugin from "@utils/types";
 import { Popout, TextInput, useRef, useState } from "@webpack/common";
 
-import KAOMOJI_DB from "./kaomoji.json";
+import KAOMOJI_DB from "./kaomoji-db.json";
 
-const MAX_RESULTS: number = 100;
+const MAX_RESULTS_CAP: number = 500;
 
 type KaomojiEntry = {
     text: string;
     subCategory: string;
 };
 
-const KAOMOJI_ENTRIES: KaomojiEntry[] = [];
+const populateKaomojiEntries = (kaomojiDb: any) => {
+    const entries: KaomojiEntry[] = [];
 
-const populateKaomojiEntries = () => {
-    for (const value of Object.values(KAOMOJI_DB as Record<string, Record<string, string[]>>)) {
+    for (const value of Object.values(kaomojiDb as Record<string, Record<string, string[]>>)) {
         for (const [subCategory, list] of Object.entries(value)) {
             for (const text of list) {
-                KAOMOJI_ENTRIES.push({ text, subCategory });
+                entries.push({ text, subCategory });
             }
         }
     }
+    return entries;
 };
 
-populateKaomojiEntries();
+const kaomojiEntries: KaomojiEntry[] = populateKaomojiEntries(KAOMOJI_DB);
 
-
-const KaomojiPicker = ({ onPick }: { onPick: () => void; }) => {
-    const [query, setQuery] = useState("");
+const KaomojiPicker = ({ maxResultsCap = 250, onPick }: { maxResultsCap: number, onPick: () => void; }) => {
+    const [queryText, setQueryText] = useState<string>("");
     const [current, setCurrent] = useState<string | null>("");
 
-    const q = query.trim().toLowerCase();
+    const query: string = queryText.trim().toLowerCase();
 
-    const results = q === ""
+    const results: KaomojiEntry[] = query === ""
         ? []
-        : KAOMOJI_ENTRIES.filter(
+        : kaomojiEntries.filter(
             ({ text, subCategory }) =>
-                text.includes(query) || subCategory.toLowerCase().includes(q)
-        ).slice(0, 100);
+                text.includes(queryText) || subCategory.toLowerCase().includes(query)
+        ).slice(0, maxResultsCap);
 
     return (
         <Card
@@ -66,9 +66,9 @@ const KaomojiPicker = ({ onPick }: { onPick: () => void; }) => {
         >
             <div style={{ padding: "12px", background: "var(--background-surface-high)" }}>
                 <TextInput
-                    value={query}
+                    value={queryText}
                     placeholder="Search kaomoji..."
-                    onChange={setQuery}
+                    onChange={setQueryText}
                     autoFocus
                 />
             </div>
@@ -82,6 +82,12 @@ const KaomojiPicker = ({ onPick }: { onPick: () => void; }) => {
                     background: "var(--background-base-lower)"
                 }}
             >
+                {query.length === 0 && (
+                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <BaseText style={{ opacity: 0.5 }}>No recents ಥ_ಥ</BaseText>
+                    </div>
+                )}
+
                 {results.length > 0 && (
                     <Grid columns={2} gap="8px" style={{ padding: "12px" }}>
                         {results.map(({ text }) => (
@@ -102,7 +108,7 @@ const KaomojiPicker = ({ onPick }: { onPick: () => void; }) => {
                     </Grid>
                 )}
 
-                {q.length > 0 && results.length === 0 && (
+                {query.length > 0 && results.length === 0 && (
                     <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
                         <BaseText style={{ opacity: 0.5 }}>No results ಥ_ಥ</BaseText>
                     </div>
@@ -112,7 +118,7 @@ const KaomojiPicker = ({ onPick }: { onPick: () => void; }) => {
             <Divider style={{ margin: 0 }} />
 
             <div style={{ height: "48px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--background-surface-high)", textAlign: "center" }}>
-                <BaseText>{current}</BaseText>
+                <BaseText>{results.length !== 0 && current}</BaseText>
             </div>
         </Card>
     );
@@ -122,7 +128,7 @@ const KaomojiButton: ChatBarButtonFactory = ({ isMainChat }) => {
     if (!isMainChat) return null;
 
     const buttonRef = useRef<HTMLSpanElement>(null);
-    const [show, setShow] = useState(false);
+    const [show, setShow] = useState<boolean>(false);
 
     return (
         <Popout
@@ -134,7 +140,7 @@ const KaomojiButton: ChatBarButtonFactory = ({ isMainChat }) => {
             onRequestClose={() => setShow(false)}
             targetElementRef={buttonRef}
             renderPopout={() => (
-                <KaomojiPicker onPick={() => setShow(false)} />
+                <KaomojiPicker maxResultsCap={MAX_RESULTS_CAP} onPick={() => setShow(false)} />
             )}
         >
             {() => (
